@@ -6,6 +6,36 @@ const port = '1883'
 const clientId = 'mqtt_${Math.random().toString(16).slice(3)}'
 const connectUrl = `${protocol}://${host}:${port}`
 
+client.on('connect', () => {
+    console.log('Connected to MQTT broker');client.on('connect', () => {
+    console.log('Connected to MQTT broker');
+});
+
+client.on('error', (err) => {
+    console.error('MQTT connection error:', err);
+});
+
+    client.on('connect', () => {
+    client.subscribe('my/topic', (err) => {
+        if (!err) {
+            console.log('Subscribed to my/topic');
+        }
+    });
+});
+
+});
+
+client.on('error', (err) => {
+    console.error('MQTT connection error:', err);
+});
+
+    client.on('connect', () => {
+    client.subscribe('my/topic', (err) => {
+        if (!err) {
+            console.log('Subscribed to my/topic');
+        }
+    });
+});
 
 // const http = require('http');
 // const cors = require('cors');
