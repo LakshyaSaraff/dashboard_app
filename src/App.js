@@ -1,49 +1,59 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const operators = ["Alice", "Bob", "Charlie"];
 const chemicals = ["Acid", "Base", "Solvent"];
 
-function generateDummyBatch() {
-  return {
-    time: new Date().toLocaleTimeString(),
-    quality: Math.random() > 0.5 ? "Acceptable" : "Not Acceptable",
-  };
-}
-
 function TankCard({ tank, index, updateTank }) {
-  const [temperature, setTemperature] = useState(
-    Math.floor(20 + Math.random() * 30)
-  );
+  const handleQualityToggle = () => {
+    const newQuality = !tank.quality;
+    const newHistory = [
+      ...tank.history,
+      {
+        time: new Date().toLocaleTimeString(),
+        quality: newQuality ? 1 : 0,
+      },
+    ];
+    updateTank(index, { quality: newQuality, history: newHistory });
+  };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const temp = Math.floor(20 + Math.random() * 30);
-      setTemperature(temp);
+  const handleStatusToggle = () => {
+    updateTank(index, { active: !tank.active });
+  };
 
-      // Simulate a new batch every 10 seconds
-      if (Math.random() > 0.85) {
-        updateTank(index, {
-          batches: [
-            ...tank.batches,
-            {
-              time: new Date().toLocaleTimeString(),
-              quality: tank.quality ? "Acceptable" : "Not Acceptable",
-            },
-          ],
-        });
-      }
-    }, 1000);
+  const latestStatus = tank.quality ? "Acceptable" : "Not Acceptable";
+  const statusColor = tank.quality ? "bg-green-200" : "bg-red-200";
+  const statusTextColor = tank.quality ? "text-green-800" : "text-red-800";
 
-    return () => clearInterval(interval);
-  }, [tank, index, updateTank]);
+  const tankStatusColor = tank.active ? "bg-green-200" : "bg-gray-300";
+  const tankStatusTextColor = tank.active ? "text-green-800" : "text-gray-800";
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow mb-6">
-      <h2 className="text-lg font-bold mb-2">Tank {index + 1}</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-bold">Tank {index + 1}</h2>
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-bold ${tankStatusColor} ${tankStatusTextColor}`}
+        >
+          {tank.active ? "Active" : "Inactive"}
+        </span>
+      </div>
 
       <div className="mb-2">
-        <span className="font-semibold">Temperature: </span>
-        {temperature}°C
+        <label className="font-semibold mr-2">Tank Status:</label>
+        <input
+          type="checkbox"
+          checked={tank.active}
+          onChange={handleStatusToggle}
+        />
       </div>
 
       <div className="mb-2">
@@ -54,6 +64,7 @@ function TankCard({ tank, index, updateTank }) {
           onChange={(e) =>
             updateTank(index, { operator: e.target.value })
           }
+          disabled={!tank.active}
         >
           <option value="">Select</option>
           {operators.map((op) => (
@@ -72,6 +83,7 @@ function TankCard({ tank, index, updateTank }) {
           onChange={(e) =>
             updateTank(index, { chemical: e.target.value })
           }
+          disabled={!tank.active}
         >
           <option value="">Select</option>
           {chemicals.map((chem) => (
@@ -82,35 +94,49 @@ function TankCard({ tank, index, updateTank }) {
         </select>
       </div>
 
-      <div className="mb-2">
-        <label className="font-semibold mr-2">Quality Acceptable:</label>
-        <input
-          type="checkbox"
-          checked={tank.quality}
-          onChange={() =>
-            updateTank(index, { quality: !tank.quality })
-          }
-        />
+      <div className="mb-2 flex items-center gap-4">
+        <div>
+          <label className="font-semibold mr-2">Quality Acceptable:</label>
+          <input
+            type="checkbox"
+            checked={tank.quality}
+            onChange={handleQualityToggle}
+            disabled={!tank.active}
+          />
+        </div>
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-bold ${statusColor} ${statusTextColor}`}
+        >
+          {latestStatus}
+        </span>
       </div>
 
-      <div>
-        <h3 className="font-semibold mt-4 mb-1">Today’s Batches</h3>
-        <table className="w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-1">Time</th>
-              <th className="border p-1">Quality</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tank.batches.map((b, i) => (
-              <tr key={i}>
-                <td className="border p-1 text-center">{b.time}</td>
-                <td className="border p-1 text-center">{b.quality}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-4">
+        <h3 className="font-semibold mb-1">Batch Quality History</h3>
+        {tank.history.length === 0 ? (
+          <p className="text-sm text-gray-500">No data yet</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={150}>
+            <LineChart data={tank.history}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="time" fontSize={10} />
+              <YAxis
+                ticks={[0, 1]}
+                domain={[0, 1]}
+                tickFormatter={(val) => (val === 1 ? "✔" : "✖")}
+              />
+              <Tooltip
+                formatter={(val) => (val === 1 ? "Acceptable" : "Not Acceptable")}
+              />
+              <Line
+                type="monotone"
+                dataKey="quality"
+                stroke="#0f766e"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
@@ -118,9 +144,9 @@ function TankCard({ tank, index, updateTank }) {
 
 function App() {
   const [tanks, setTanks] = useState([
-    { operator: "", chemical: "", quality: true, batches: [] },
-    { operator: "", chemical: "", quality: true, batches: [] },
-    { operator: "", chemical: "", quality: true, batches: [] },
+    { operator: "", chemical: "", quality: true, active: true, history: [] },
+    { operator: "", chemical: "", quality: true, active: true, history: [] },
+    { operator: "", chemical: "", quality: true, active: true, history: [] },
   ]);
 
   const updateTank = (index, updates) => {
