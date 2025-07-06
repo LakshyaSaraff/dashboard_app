@@ -178,22 +178,60 @@ const App = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTanks((prev) =>
-        prev.map((tank) => {
-          if (!tank.batchNumber) return tank;
-          const temp = (Math.random() * 50).toFixed(2);
-          const time = new Date().toLocaleTimeString();
-          return {
-            ...tank,
-            temperature: temp,
-            status: tank.ok ? "OK" : "Not OK",
-            temperatureHistory: [...tank.temperatureHistory.slice(-19), { time, value: temp }],
-          };
+      fetch("http://localhost:5000/api/latest")
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("API Data:", data);
+
+          const time = data.timestamp.split(" ")[1];
+
+          setTanks((prev) =>
+            prev.map((tank) => {
+              if (!tank.batchNumber) return tank;
+
+              const tempKey = `temperature${tank.id}`;
+              const temp = data[tempKey];
+
+              // If temperature value is not available for this tank, skip update
+              if (temp === undefined) return tank;
+
+              return {
+                ...tank,
+                temperature: temp,
+                status: tank.ok ? "OK" : "Not OK",
+                temperatureHistory: [
+                  ...tank.temperatureHistory.slice(-19),
+                  { time, value: temp },
+                ],
+              };
+            })
+          );
         })
-      );
+        .catch(console.error);
     }, 1000);
+
     return () => clearInterval(interval);
   }, []);
+
+
+
+  //   const interval = setInterval(() => {
+  //     setTanks((prev) =>
+  //       prev.map((tank) => {
+  //         if (!tank.batchNumber) return tank;
+  //         const temp = (Math.random() * 50).toFixed(2);
+  //         const time = new Date().toLocaleTimeString();
+  //         return {
+  //           ...tank,
+  //           temperature: temp,
+  //           status: tank.ok ? "OK" : "Not OK",
+  //           temperatureHistory: [...tank.temperatureHistory.slice(-19), { time, value: temp }],
+  //         };
+  //       })
+  //     );
+  //   }, 1000);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   const toggleBatchStatus = (id) => {
     setTanks((prev) =>
@@ -264,6 +302,13 @@ const App = () => {
       )}
 
       {expandedTank && <ExpandedTank tank={expandedTank} onClose={closeExpanded} />}
+
+      <img
+        src="/jc_logo.jpg"
+        alt="JC Logo"
+        className="fixed bottom-4 right-4 w-22 h-16 opacity-90"
+      />
+
     </div>
   );
 };
